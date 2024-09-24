@@ -14,7 +14,7 @@ module Sidekiq
                            hostname: ::Socket.gethostname,
                            pid: ::Process.pid)
         Thread.new do
-          server = TCPServer.new("localhost", port)
+          server = TCPServer.new("0.0.0.0", port)
           loop do
             client = server.accept
             request = client.gets
