@@ -8,11 +8,11 @@ TODO: Delete this and the text above, and describe your gem
 
 Install the gem and add to the application's Gemfile by executing:
 
-    $ bundle add sidekiq-liveness
+    $ bundle add sidekiq-get-liveness
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
-    $ gem install sidekiq-liveness
+    $ gem install sidekiq-get-liveness
 
 ## Usage
 
@@ -26,4 +26,4 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/sidekiq-liveness.
+Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/sidekiq-get-liveness.
