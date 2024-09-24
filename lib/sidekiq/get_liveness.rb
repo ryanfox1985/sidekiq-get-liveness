@@ -9,10 +9,10 @@ module Sidekiq
 
   module GetLiveness
     class << self
-      def start_web_server(path: DEFAULT_PATH, port: DEFAULT_PORT)
-        hostname = Socket.gethostname
-        pid = Process.pid
-
+      def start_web_server(path: DEFAULT_PATH,
+                           port: DEFAULT_PORT,
+                           hostname: ::Socket.gethostname,
+                           pid: ::Process.pid)
         Thread.new do
           server = TCPServer.new("localhost", port)
           loop do
