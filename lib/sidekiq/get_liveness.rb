@@ -19,7 +19,8 @@ module Sidekiq
             client = server.accept
             request = client.gets
 
-            handle_request(client, request, path, hostname, pid)
+            response = handle_request(client, request, path, hostname, pid)
+            client.puts "#{response.join("\r\n")}\r\n"
             client.close
           end
         end
@@ -29,14 +30,15 @@ module Sidekiq
         if request.present? && request.start_with?("GET #{path}")
           liveness_check(client, hostname, pid)
         else
-          client.puts "HTTP/1.1 404 Not Found"
           message = "Not found"
-          client.puts "Connection: close"
-          client.puts "Content-Length: #{message.bytesize + 1}"
-          client.puts "Content-Type: text/plain"
-          client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
-          client.puts
-          client.puts message
+          [
+            "HTTP/1.1 404 Not Found",
+            "Content-Length: #{message.bytesize + 2}",
+            "Content-Type: text/plain",
+            "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}",
+            "",
+            message
+          ]
         end
       end
 
@@ -45,20 +47,27 @@ module Sidekiq
           p["hostname"] == hostname && p["pid"] == pid
         end
 
-        message = if process.present?
-                    client.puts "HTTP/1.1 200 OK"
-                    "Sidekiq Worker #{hostname}-#{pid} is alive."
-                  else
-                    client.puts "HTTP/1.1 503 Service Unavailable"
-                    "Sidekiq Worker #{hostname}-#{pid} is not alive."
-                  end
-
-        client.puts "Connection: close"
-        client.puts "Content-Length: #{message.bytesize + 1}"
-        client.puts "Content-Type: text/plain"
-        client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
-        client.puts
-        client.puts message
+        if process.present?
+          message = "Sidekiq Worker #{hostname}-#{pid} is alive."
+          [
+            "HTTP/1.1 200 OK",
+            "Content-Length: #{message.bytesize + 2}",
+            "Content-Type: text/plain",
+            "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}",
+            "",
+            message
+          ]
+        else
+          message = "Sidekiq Worker #{hostname}-#{pid} is not alive."
+          [
+            "HTTP/1.1 503 Service Unavailable",
+            "Content-Length: #{message.bytesize + 2}",
+            "Content-Type: text/plain",
+            "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}",
+            "",
+            message
+          ]
+        end
       end
     end
   end
