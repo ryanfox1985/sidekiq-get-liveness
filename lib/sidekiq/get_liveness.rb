@@ -31,8 +31,10 @@ module Sidekiq
         else
           client.puts "HTTP/1.1 404 Not Found"
           message = "Not found"
+          client.puts "Connection: close"
           client.puts "Content-Length: #{message.bytesize + 1}"
           client.puts "Content-Type: text/plain"
+          client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
           client.puts
           client.puts message
         end
@@ -43,21 +45,20 @@ module Sidekiq
           p["hostname"] == hostname && p["pid"] == pid
         end
 
-        if process.present?
-          client.puts "HTTP/1.1 200 OK"
-          client.puts "Content-Length: 0"
-          client.puts "Content-Type: text/plain"
-          client.puts "Connection: keep-alive"
-          client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
-          client.puts
-        else
-          client.puts "HTTP/1.1 503 Service Unavailable"
-          message = "Sidekiq Worker #{hostname}-#{pid} is not alive."
-          client.puts "Content-Length: #{message.bytesize + 1}"
-          client.puts "Content-Type: text/plain"
-          client.puts
-          client.puts message
-        end
+        message = if process.present?
+                    client.puts "HTTP/1.1 200 OK"
+                    "Sidekiq Worker #{hostname}-#{pid} is alive."
+                  else
+                    client.puts "HTTP/1.1 503 Service Unavailable"
+                    "Sidekiq Worker #{hostname}-#{pid} is not alive."
+                  end
+
+        client.puts "Connection: close"
+        client.puts "Content-Length: #{message.bytesize + 1}"
+        client.puts "Content-Type: text/plain"
+        client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
+        client.puts
+        client.puts message
       end
     end
   end
