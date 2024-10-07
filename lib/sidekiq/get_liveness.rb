@@ -30,9 +30,10 @@ module Sidekiq
           liveness_check(client, hostname, pid)
         else
           client.puts "HTTP/1.1 404 Not Found"
+          client.puts "Content-Length: #{"Not found".bytesize + 1}"
           client.puts "Content-Type: text/plain"
           client.puts
-          client.puts "Not Found"
+          client.puts "Not found"
         end
       end
 
@@ -41,17 +42,18 @@ module Sidekiq
           p["hostname"] == hostname && p["pid"] == pid
         end
 
-        if process.present?
-          client.puts "HTTP/1.1 200 OK"
-          client.puts "Content-Type: text/plain"
-          client.puts
-          client.puts "Sidekiq Worker #{hostname}-#{pid} is alive."
-        else
-          client.puts "HTTP/1.1 503 Service Unavailable"
-          client.puts "Content-Type: text/plain"
-          client.puts
-          client.puts "Sidekiq Worker #{hostname}-#{pid} is not alive."
-        end
+        message = if process.present?
+                    client.puts "HTTP/1.1 200 OK"
+                    "Sidekiq Worker #{hostname}-#{pid} is alive."
+                  else
+                    client.puts "HTTP/1.1 503 Service Unavailable"
+                    "Sidekiq Worker #{hostname}-#{pid} is not alive."
+                  end
+
+        client.puts "Content-Length: #{message.bytesize + 1}"
+        client.puts "Content-Type: text/plain"
+        client.puts
+        client.puts message
       end
     end
   end
