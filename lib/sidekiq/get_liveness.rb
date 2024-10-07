@@ -1,14 +1,11 @@
 # frozen_string_literal: true
 
-require "connection_pool"
-require "redis"
 require "sidekiq"
 require_relative "./get_liveness/version"
 
 module Sidekiq
   DEFAULT_PATH = ENV.fetch("SIDEKIQ_GET_LIVENESS_URL", "/sidekiq/liveness")
   DEFAULT_PORT = ENV.fetch("SIDEKIQ_GET_LIVENESS_PORT", 8080)
-  REDIS_POOL = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
 
   module GetLiveness
     class << self
