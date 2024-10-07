@@ -46,6 +46,9 @@ module Sidekiq
         if process.present?
           client.puts "HTTP/1.1 200 OK"
           client.puts "Content-Length: 0"
+          client.puts "Content-Type: text/plain"
+          client.puts "Connection: keep-alive"
+          client.puts "Date: #{Time.now.utc.strftime("%a, %d %b %Y %H:%M:%S GMT")}"
           client.puts
         else
           client.puts "HTTP/1.1 503 Service Unavailable"
