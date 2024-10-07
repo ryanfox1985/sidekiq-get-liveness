@@ -45,6 +45,8 @@ module Sidekiq
 
         if process.present?
           client.puts "HTTP/1.1 200 OK"
+          client.puts "Content-Length: 0"
+          client.puts
         else
           client.puts "HTTP/1.1 503 Service Unavailable"
           message = "Sidekiq Worker #{hostname}-#{pid} is not alive."
