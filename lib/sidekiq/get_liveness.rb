@@ -76,7 +76,9 @@ module Sidekiq
 
       def sidekiq_process_set
         REDIS_CONNECTIONS_POOL.with do |conn|
-          Sidekiq::ProcessSet.new(conn)
+          Sidekiq.redis = ->(&block) { block.call(conn) }
+
+          Sidekiq::ProcessSet.new
         end
       end
     end
