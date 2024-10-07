@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
+require "connection_pool"
+require "redis"
 require "sidekiq"
 require_relative "./get_liveness/version"
 
 module Sidekiq
   DEFAULT_PATH = ENV.fetch("SIDEKIQ_GET_LIVENESS_URL", "/sidekiq/liveness")
   DEFAULT_PORT = ENV.fetch("SIDEKIQ_GET_LIVENESS_PORT", 8080)
+  REDIS_POOL = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
 
   module GetLiveness
     class << self
@@ -19,16 +22,16 @@ module Sidekiq
             client = server.accept
             request = client.gets
 
-            response = handle_request(client, request, path, hostname, pid)
+            response = handle_request(request, path, hostname, pid)
             client.puts "#{response.join("\r\n")}\r\n"
             client.close
           end
         end
       end
 
-      def handle_request(client, request, path, hostname, pid)
+      def handle_request(request, path, hostname, pid)
         if request.present? && request.start_with?("GET #{path}")
-          liveness_check(client, hostname, pid)
+          liveness_check(hostname, pid)
         else
           message = "Not found"
           [
@@ -42,7 +45,7 @@ module Sidekiq
         end
       end
 
-      def liveness_check(client, hostname, pid)
+      def liveness_check(hostname, pid)
         process = Sidekiq::ProcessSet.new.detect do |p|
           p["hostname"] == hostname && p["pid"] == pid
         end
