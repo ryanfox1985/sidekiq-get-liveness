@@ -73,12 +73,13 @@ module Sidekiq
         end
       end
 
+      # Sidekiq::ProcessSet.new
       def sidekiq_process_set
         REDIS_POOL.with do |conn|
           procs = conn.sscan("processes", 0).to_a
 
           conn.pipelined do |pipeline|
-            procs.each do |key|
+            procs.compact.map do |key|
               pipeline.hget(key, "info")
             end
           end.compact.map { |p| JSON.parse(p) }
