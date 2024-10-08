@@ -6,6 +6,9 @@ require_relative "./get_liveness/version"
 module Sidekiq
   DEFAULT_PATH = ENV.fetch("SIDEKIQ_GET_LIVENESS_URL", "/sidekiq/liveness")
   DEFAULT_PORT = ENV.fetch("SIDEKIQ_GET_LIVENESS_PORT", 8080)
+  REDIS_POOL = ConnectionPool.new(size: 1, timeout: 5) do
+    Redis.new(url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1"))
+  end
 
   module GetLiveness
     class << self
@@ -43,7 +46,7 @@ module Sidekiq
       end
 
       def liveness_check(hostname, pid)
-        process = Sidekiq::ProcessSet.new(false).detect do |p|
+        process = sidekiq_process_set.detect do |p|
           p["hostname"] == hostname && p["pid"] == pid
         end
 
@@ -67,6 +70,18 @@ module Sidekiq
             "",
             message
           ]
+        end
+      end
+
+      def sidekiq_process_set
+        REDIS_POOL.with do |conn|
+          procs = conn.sscan("processes", 0).to_a
+
+          conn.pipelined do |pipeline|
+            procs.each do |key|
+              pipeline.hget(key, "info")
+            end
+          end.compact.map { |p| JSON.parse(p) }
         end
       end
     end
